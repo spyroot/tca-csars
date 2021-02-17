@@ -1,0 +1,79 @@
+{
+	"id": "configure_ns_and_nad",
+	"name": "configure_ns_and_nad",
+	"description": "This workflow creates the namespace of required and adds NADs provided in nad file.",
+	"version": "1.0",
+	"startStep": "create_ns",
+	"variables": [
+		{"name":"DEST_DIR", "description": "Destination dir", "type":"string", "value":"/tmp"},
+		{"name":"NAD_FILE_PATH", "description": "NAD file path", "type":"string", "value":"/tmp/xran-test-fd-211-nad.yaml"}
+	],
+	"input": [
+		{"name": "USERNAME", "description": "k8s master username", "type": "string"},
+		{"name": "PASSWORD", "description": "k8s master password", "type": "passowrd"},
+		{"name": "IP", "description": "k8s master IP", "type": "string"},
+		{"name": "NAD_FILE", "description": "NAD file", "type": "file"},
+		{"name": "K8S_NAMESPACE", "description": "k8s namespace for xran test workload", "type": "string"}}
+	],
+	"output":[
+		{"name": "nsCreateResult", "type": "string"},
+		{"name": "copyNadResult", "type": "string"},
+		{"name": "nadCreateResult", "type": "string"}
+	],
+	"steps":[
+		{
+			"stepId":"create_ns",
+			"workflow": "RUN_SSH_COMMAND_IN_GUEST",
+			"namespace": "nfv",
+			"type": "task",
+			"description": "Create namespace for xran test workload",
+			"inBinding": [
+				{"name": "username", "type": "string", "exportName": "USERNAME"},
+				{"name": "password", "type": "password", "exportName": "PASSWORD"},
+				{"name": "port", "type": "number", "default": "22"},
+				{"name": "cmd", "type": "string", "default": "kubectl get namespace {{K8S_NAMESPACE}} || kubectl create namespace {{K*S_NAMESPACE}}"},
+				{"name": "encoding", "type": "string", "default": " "},
+				{"name": "hostnameOrIP", "type": "string", "exportName": "IP"}
+			],
+			"outBinding": [
+				{"name": "result", "type": "string", "exportName": "nsCreateResult"}
+			],
+			"nextStep": "copy_nadfile_to_master"
+		},
+		{
+	    		"stepId":"copy_nad_file_to_master",
+			"workflow":"COPY_FILE_TO_GUEST", "namespace": "nfv",
+			"type":"task",
+			"description": "Upload nad file to K8s master node",
+			"inBinding":[
+				 {"name": "username", "type": "string", "exportName": "USERNAME"}
+				,{"name": "password", "type": "password", "exportName": "PASSWORD"}
+				,{"name": "ip", "type": "string", "exportName": "IP"}
+				,{"name": "inFile", "type": "file", "exportName": "NAD_FILE"}
+				,{"name": "workingDirectory", "type": "string", "exportName": "DEST_DIR"}
+			],
+			 "outBinding": [
+        {"name": "result", "type": "string", "exportName": "copyNADResult"}
+      ],
+      "nextStep": "create_nads"
+    },
+    {
+      "stepId":"create_nads",
+      "workflow":"RUN_SSH_COMMAND_IN_GUEST", "namespace": "nfv",
+      "type":"task",
+      "description": "Apply NAD for DU",
+      "inBinding":[
+         {"name": "username", "type": "string", "exportName": "USERNAME"}
+        ,{"name": "password", "type": "password", "exportName": "PASSWORD"}
+        ,{"name": "port", "type": "number", "default": "22"}
+        ,{"name": "cmd", "type": "string", "default": "cat {{NAD_FILE_PATH}} | kubectl -n astar-du apply -f -"}
+        ,{"name": "encoding", "type": "string", "default": " "}
+        ,{"name": "hostNameOrIP", "type": "string", "exportName": "IP"}
+      ],
+      "outBinding": [
+          {"name": "result", "type": "string", "exportName": "nadCreateResult"}
+      ],
+      "nextStep": "END"
+    }
+	]
+}

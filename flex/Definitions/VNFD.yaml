@@ -1,0 +1,353 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+description: Flexran XRAN test
+imports:
+  - vmware_etsi_nfv_sol001_vnfd_2_5_1_types.yaml
+node_types:
+  tosca.nodes.nfv.VMware.CNF.flexran-xran-test-fd:
+    derived_from: tosca.nodes.nfv.VMware.CNF
+    interfaces:
+      Vnflcm:
+        type: tosca.interfaces.nfv.Vnflcm
+  tosca.nodes.nfv.Vdu.Compute.Helm.flexran-xran-fd:
+    derived_from: tosca.nodes.nfv.Vdu.Compute.Helm
+    properties:
+      configurable_properties:
+        type: tosca.datatypes.nfv.VnfcConfigurableProperties.flexran-xran-fd
+        required: false
+data_types:
+  tosca.datatypes.nfv.VnfcConfigurableProperties.flexran-xran-fd:
+    derived_from: tosca.datatypes.nfv.VnfcConfigurableProperties
+    properties:
+      additional_vnfc_configurable_properties:
+        type: >-
+          tosca.datatypes.nfv.VnfcAdditionalConfigurableProperties.flexran-xran-fd
+        description: Describes additional configuration for VNFC that can be configured
+        required: false
+  tosca.datatypes.nfv.VnfcAdditionalConfigurableProperties.flexran-xran-fd:
+    derived_from: tosca.datatypes.nfv.VnfcAdditionalConfigurableProperties
+    properties:
+      KIND:
+        required: false
+        propertyName: KIND
+        description: ''
+        default: fd
+        type: string
+        format: string
+      vlan1:
+        required: true
+        propertyName: vlan1
+        description: "Network interface for SRIOV"
+        default: ''
+        type: string
+        format: network
+      vlan2:
+        required: true
+        propertyName: vlan2
+        description: 'Network interface for macvlan'
+        default: ''
+        type: string
+        format: network
+      NUMEROLOGY:
+        required: false
+        propertyName: NUMEROLOGY
+        description: ''
+        default: 1
+        type: number
+        format: number
+      BANDWIDTH:
+        required: false
+        propertyName: BANDWIDTH
+        description: Cell bandwidth in MHz
+        default: 200
+        type: number
+        format: number
+      NUM_CELLS:
+        required: false
+        propertyName: NUM_CELLS
+        description: ''
+        default: 6
+        type: number
+        format: number
+      TEST_NUM:
+        required: false
+        propertyName: TEST_NUM
+        description: ''
+        default: 211
+        type: number
+        format: number
+  tosca.datatypes.nfv.VMware.Interface.InstantiateStartInputParameters:
+    derived_from: tosca.datatypes.nfv.VnfOperationAdditionalParameters
+    properties:
+      USERNAME:
+        name: USERNAME
+        type: string
+        description: K8s master username
+        required: true
+        default: capv
+        format: string
+      PASSWORD:
+        name: PASSWORD
+        type: password
+        description: K8s master password
+        required: true
+        default: "VMware1!"
+        format: password
+      IP:
+        name: IP
+        type: string
+        description: K8s master ip address
+        required: true
+        default: 10.252.80.168
+        format: string
+      NAD_FILE:
+        name: NAD_FILE
+        type: string
+        description: The NAD Config file
+        required: true
+        default: ''
+        format: file
+      K8S_NAMESPACE:
+        name: K8S_NAMESPACE
+        type: string
+        description: K8S namespace for flexran
+        required: true
+        default: ran
+        format: string
+  tosca.datatypes.nfv.VMware.Interface.InstantiateStartOutputParameters:
+    derived_from: tosca.datatypes.nfv.VnfOperationAdditionalParameters
+    properties:
+      nsCreateResult:
+        name: nsCreateResult
+        type: string
+        description: ''
+      copyNADResult:
+        name: copyNADResult
+        type: string
+        description: ''
+      nadCreateResult:
+        name: nadCreateResult
+        type: string
+        description: ''
+topology_template:
+  substitution_mappings:
+    node_type: tosca.nodes.nfv.VMware.CNF.flexran-xran-test-fd
+    properties:
+      descriptor_id: vnfd_50076cd0-8d0b-4452-be4d-6c7bc2667624
+      provider: mus
+      vendor: vmware
+      product_name: flexran-20.08-XRAN-tests
+      version: '0.2'
+      id: id
+      software_version: '0.2'
+      descriptor_version: '0.2'
+      flavour_id: default
+      flavour_description: default
+      vnfm_info:
+        - gvnfmdriver
+    interfaces:
+      Vnflcm:
+        instantiate_start:
+          implementation: ../Artifacts/workflows/PreInstantiation_WF.json
+          description: Configure namespace and NADs required
+          inputs:
+            type: >-
+              tosca.datatypes.nfv.VMware.Interface.InstantiateStartInputParameters
+            USERNAME: capv
+            PASSWORD: VMware1!
+            IP: 10.246.2.136
+            NAD_FILE: ''
+            K8S_NAMESPACE: ran
+          outputs:
+            type: >-
+              tosca.datatypes.nfv.VMware.Interface.InstantiateStartOutputParameters
+            nsCreateResult: ''
+            copyNADResult: ''
+            nadCreateResult: ''
+  node_templates:
+    flexran-xran-test-fd:
+      node_type: tosca.nodes.nfv.VMware.CNF.flexran-xran-test-fd
+      properties:
+        descriptor_id: vnfd_50076cd0-8d0b-4452-be4d-6c7bc2667624
+        provider: mus
+        vendor: vmware
+        product_name: flexran-20.08-tests
+        version: '0.2'
+        id: id
+        software_version: '0.2'
+        descriptor_version: '0.2'
+        flavour_id: default
+        flavour_description: default
+        vnfm_info:
+          - gvnfmdriver
+        infra_requirements:
+         node_components:
+           isNumaConfigNeeded: true
+           latency_sensitivity: high
+           additional_config:
+             - name: tuned
+               value: '[{"name":"realtime"}]'
+           file_injection:
+             - source: file
+               content: ../Artifacts/scripts/realtime-variables.conf
+               path: /etc/tuned/realtime-variables.conf
+           kernel:
+             kernel_type:
+                 name: linux-rt
+                 version: 4.19.132-1.ph3
+             kernel_args:
+                - key: nosoftlockup
+                - key: intel_idle.max_cstate
+                  value: 1
+                - key: mce
+                  value: ignore_ce
+                - key: nowatchdog
+                - key: cpuidle.off
+                  value: 1
+                - key: nmi_watchdog
+                  value: 0
+                - key: audit
+                  value: 0
+                - key: processor.max_cstate
+                  value: 0
+                - key: intel_pstate
+                  value: disable
+                - key: isolcpus
+                  value: 2-{{tca.node.vmNumCPUs}}
+                - key: skew_tick
+                  value: 1
+                - key: nohz
+                  value: on
+                - key: nohz_full
+                  value: 2-{{tca.node.vmNumCPUs}}
+                - key: rcu_nocb_poll
+                  value: 1
+                - key: rcu_nocbs
+                  value: 2-{{tca.node.vmNumCPUs}}
+                - key: idle
+                  value: poll
+                - key: default_hugepagesz
+                  value: 1G
+                - key: hugepagesz
+                  value: 1G
+                - key: hugepages
+                  value: 32
+                - key: intel_iommu
+                  value: on
+                - key: iommu
+                  value: pt
+                - key: kthreads_cpu
+                  value: 0,1
+                - key: clocksource
+                  value: tsc
+                - key: tsc
+                  value: reliable
+                - key: latency_sensitivity
+                  value: high
+                - key: pcie_aspm.policy
+                  value: performance
+             kernel_modules:
+               - name: dpdk
+                 version: 19.11
+             custom_packages:
+               - name: pciutils
+                 version: 3.6.4-1.ph3
+               - name: tuned
+                 version: 2.13.0-3.ph3
+               - name: build-essential
+                 version: 0.1-3.ph3
+               - name: libnuma
+                 version: 2.0.13-2.ph3
+               - name: numactl
+                 version: 2.0.13-2.ph3
+               - name: python3-devel
+                 version: 3.7.5-9.ph3
+               - name: tcpdump
+                 version: 4.9.3-2.ph3
+           network:
+              devices:
+                - deviceType: sriov
+                  networkName: vlan1
+                  resourceName: sriov1
+                  dpdkBinding: igb_uio
+        caas_components:
+          - name: host-device
+            type: cni
+          - name: static
+            type: cni
+          - name: sriov
+            type: cni
+      interfaces:
+        Vnflcm:
+          instantiate_start:
+            implementation: ../Artifacts/workflows/PreInstantiation_WF.json
+            description: Configure namespace and NADs
+            inputs:
+              type: >-
+                tosca.datatypes.nfv.VMware.Interface.InstantiateStartInputParameters
+              USERNAME: capv
+              PASSWORD: VMware1!
+              IP: 10.252.80.168
+              NAD_FILE: ''
+              K8S_NAMESPACE: ran
+            outputs:
+              type: >-
+                tosca.datatypes.nfv.VMware.Interface.InstantiateStartOutputParameters
+              nsCreateResult: ''
+              copyNADResult: ''
+              nadCreateResult: ''
+    flexran-xran-fd:
+      type: tosca.nodes.nfv.Vdu.Compute.Helm.flexran-xran-fd
+      properties:
+        name: flexran-xran-fd
+        description: Flexran XRAN test fd
+        chartName: flexran-xran-fd-211
+        chartVersion: 1.1.0
+        helmVersion: v3
+        id: flexran-xran-fd
+        configurable_properties:
+          additional_vnfc_configurable_properties:
+            type: >-
+              tosca.datatypes.nfv.VnfcAdditionalConfigurableProperties.flexran-xran-fd
+            KIND: fd
+            NUMEROLOGY: 1
+            BANDWIDTH: 200
+            NUM_CELLS: 6
+            TEST_NUM: 211
+            vlan1: ''
+  policies:
+    - policy_scale:
+        type: tosca.policies.nfv.SupportedVnfInterface
+        properties:
+          interface_name: scale
+          interface_type: operation
+          isEnabled: true
+    - policy_workflow:
+        type: tosca.policies.nfv.SupportedVnfInterface
+        properties:
+          interface_name: workflow
+          interface_type: operation
+          isEnabled: true
+    - policy_reconfigure:
+        type: tosca.policies.nfv.SupportedVnfInterface
+        properties:
+          interface_name: reconfigure
+          interface_type: operation
+          isEnabled: true
+    - policy_update:
+        type: tosca.policies.nfv.SupportedVnfInterface
+        properties:
+          interface_name: update
+          interface_type: operation
+          isEnabled: true
+    - policy_upgrade:
+        type: tosca.policies.nfv.SupportedVnfInterface
+        properties:
+          interface_name: upgrade
+          interface_type: operation
+          isEnabled: true
+    - policy_upgrade_package:
+        type: tosca.policies.nfv.SupportedVnfInterface
+        properties:
+          interface_name: upgrade_package
+          interface_type: operation
+          isEnabled: true
